@@ -602,12 +602,12 @@ function getScores(i) {
 function start_app() {
     console.setPosition(0, device.height / 2); //部分华为手机console有bug请注释本行
     console.show(); //部分华为手机console有bug请注释本行
-    // console.log("正在启动app...");
-    // if (!launchApp("学习强国")) //启动学习强国app
-    // {
-    //     console.error("找不到学习强国App!");
-    //     return;
-    // }
+    console.log("正在启动app...");
+    if (!launchApp("学习强国")) //启动学习强国app
+    {
+        console.error("找不到学习强国App!");
+        return;
+    }
     while (!text("工作").exists()) {
         console.log("正在等待加载出主页");
         delay(1);
