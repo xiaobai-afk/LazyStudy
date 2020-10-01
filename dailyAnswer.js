@@ -143,7 +143,7 @@ function checkAndSql(timuStr, ansTiku, answer) {
                 tikuCommon.executeSQL(sqlstr);
                 break;
             } else {
-                let clickPos = className("android.webkit.WebView").findOnce().child(2).child(0).child(1).bounds();
+                let clickPos = className("android.webkit.WebView").findOnce().child(0).child(2).child(0).child(1).bounds();
                 click(clickPos.left + device.width * 0.13, clickPos.top + device.height * 0.1);
                 log("未捕获 正确答案，尝试修正");
             }
@@ -160,8 +160,8 @@ function checkAndSql(timuStr, ansTiku, answer) {
 }
 
 function clickBtn() {
-    let webkitView = className("android.webkit.WebView").findOnce();
-    if (webkitView.childCount() > 2 && webkitView.child(2).text() != "") {
+    let webkitView = className("android.webkit.WebView").findOnce().child(0);
+    if (webkitView.childCount() > 2 && webkitView.child(1).text() != "") {
         // toastLog("1");
         webkitView.child(1).click();
         return;
