@@ -1,6 +1,9 @@
 //toastLog(" 请在无障碍中选择本 APP");
 auto.waitFor();
-
+if (!requestScreenCapture()) {
+    toast("请求截图失败");
+    exit();
+}
 let window = floaty.window(
     <vertical>
         <button id="move" text=" 移动 " w="90" h="35" bg="#77ffffff" textSize="10sp" />
@@ -15,8 +18,7 @@ let window = floaty.window(
 let deviceWidth = device.width;
 let deviceHeight = device.height;
 window.setPosition(deviceWidth * 0.7, deviceHeight * 0.4);
-setInterval(() => {
-}, 1000);
+setInterval(() => { }, 1000);
 
 
 let wx, wy, downTime, windowX, windowY;
@@ -63,12 +65,42 @@ window.startLL.click(() => {
 //挑战答题
 window.startDT.click(() => {
     let ss = "./challengeAnswer.js";
-    startTh(ss);
+    if (th == null) {
+        th = threads.start(function () {
+            toastLog(" 开启线程");
+            let begin = require(ss);
+            begin();
+        });
+    } else {
+        if (th.isAlive()) {
+            toastLog(" 脚本都在运行了你还点！？");
+        } else {
+            th = threads.start(function () {
+                let begin = require(ss);
+                begin(true);
+            });
+        }
+    }
 });
 //每日答题
 window.startMR.click(() => {
     let ss = "./dailyAnswer.js";
-    startTh(ss);
+    if (th == null) {
+        th = threads.start(function () {
+            toastLog(" 开启线程");
+            let begin = require(ss);
+            begin();
+        });
+    } else {
+        if (th.isAlive()) {
+            toastLog(" 脚本都在运行了你还点！？");
+        } else {
+            th = threads.start(function () {
+                let begin = require(ss);
+                begin(true);
+            });
+        }
+    }
 });
 
 //停止
@@ -103,5 +135,4 @@ function startTh(fileStr) {
             });
         }
     }
-
 }

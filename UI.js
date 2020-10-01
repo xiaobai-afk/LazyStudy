@@ -19,7 +19,7 @@ ui.layout(
             <viewpager id="viewpager">
                 <frame>
                     <img src={"https://api.ixiaowai.cn/gqapi/gqapi.php?" + new Date().getTime()} scaleType="centerCrop" alpha="0.2" />
-                    <text textSize="16sp" textColor="red" text="一键42分 v2.7.0" />
+                    <text textSize="16sp" textColor="red" text="一键42分版" />
                     <button id="amsw" text="阅读模式选择" layout_gravity="right|top" w="auto" h="auto" circle="true"/>
                     <button id="showFloating" text="打开悬浮窗" w="150" h="60" circle="true" layout_gravity="center" style="Widget.AppCompat.Button.Colored" />
                 </frame>
@@ -225,13 +225,13 @@ ui.next.click(() => {
 
 //修改
 ui.update.click(() => {
-    threads.start(function () {
+    threads.start(function() {
         if (ui.question.getText() && qaArray.length > 0 && parseInt(ui.questionIndex.getText()) > 0) {
-            var qIndex = parseInt(ui.questionIndex.getText()) - 1;
-            var questionOld = qaArray[qIndex].question;
-            var questionStr = ui.question.getText();
-            var answerStr = ui.answer.getText();
-            var sqlstr = "UPDATE tiku SET question = '" + questionStr + "' , answer = '" + answerStr + "' WHERE question=  '" + questionOld + "'";
+            let qIndex = parseInt(ui.questionIndex.getText()) - 1;
+            let questionOld = qaArray[qIndex].question;
+            let questionStr = ui.question.getText();
+            let answerStr = ui.answer.getText();
+            let sqlstr = "UPDATE tiku SET question = '" + questionStr + "' , answer = '" + answerStr + "' WHERE question=  '" + questionOld + "' AND answer = '" + qaArray[qIndex].answer + "'";
             tikuCommon.executeSQL(sqlstr);
         } else {
             toastLog("请先查询");
@@ -241,11 +241,12 @@ ui.update.click(() => {
 
 //删除
 ui.delete.click(() => {
-    threads.start(function () {
+    threads.start(function() {
         if (qaArray.length > 0 && parseInt(ui.questionIndex.getText()) > 0) {
-            var qIndex = parseInt(ui.questionIndex.getText()) - 1;
-            var questionOld = qaArray[qIndex].question;
-            var sqlstr = "DELETE FROM tiku WHERE question = '" + questionOld + "'";
+            let qIndex = parseInt(ui.questionIndex.getText()) - 1;
+            let questionOld = qaArray[qIndex].question;
+            let answerStr = ui.answer.getText();
+            let sqlstr = "DELETE FROM tiku WHERE question = '" + questionOld + "' AND answer = '" + answerStr + "'";
             tikuCommon.executeSQL(sqlstr);
         } else {
             toastLog("请先查询");

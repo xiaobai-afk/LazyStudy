@@ -1,165 +1,11 @@
-importClass(android.database.sqlite.SQLiteDatabase);
-var lCount = 1;//挑战答题轮数
-var qCount = 5;//挑战答题每轮答题数
+let tikuCommon = require("./tikuCommon.js");
 
-/**
- * @description: 延时函数
- * @param: seconds-延迟秒数
- * @return: null
- */
-function delay(seconds) {
-    sleep(1000 * seconds);//sleep函数参数单位为毫秒所以乘1000
-}
+let tipsWindow = null;
 
-/**
- * @description: 生成从minNum到maxNum的随机数
- * @param: minNum-较小的数
- * @param: maxNum-较大的数
- * @return: null
- */
-function randomNum(minNum, maxNum) {
-    switch (arguments.length) {
-        case 1:
-            return parseInt(Math.random() * minNum + 1, 10);
-        case 2:
-            return parseInt(Math.random() * (maxNum - minNum + 1) + minNum, 10);
-        default:
-            return 0;
-    }
-} 
-
-/**
- * @description: 从数据库中搜索答案
- * @param: question 问题
- * @return: answer 答案
- */
-function getAnswer(question, table_name) {
-    var dbName = "tiku.db";//题库文件名
-    var path = files.path(dbName);
-    var db = SQLiteDatabase.openOrCreateDatabase(path, null);
-    sql = "SELECT answer FROM " + table_name + " WHERE question LIKE '" + question + "%'"
-    var cursor = db.rawQuery(sql, null);
-    if (cursor.moveToFirst()) {
-        var answer = cursor.getString(0);
-        cursor.close();
-        return answer;
-    }
-    else {
-        console.log("题库中未找到答案");
-        cursor.close();
-        return '';
-    }
-}
-
-
-function indexFromChar(str) {
-    return str.charCodeAt(0) - "A".charCodeAt(0);
-}
-
-/**
- * @description: 每次答题循环
- * @param: conNum 连续答对的次数
- * @return: null
- */
-function challengeQuestionLoop(conNum) {
-    if (conNum >= qCount)//答题次数足够退出，每轮5次
-    {
-        let listArray = className("ListView").findOnce().children();//题目选项列表
-        let i = random(0, listArray.length - 1);
-        console.log("今天答题次数已够，随机点击一个答案");
-        listArray[i].child(0).click();//随意点击一个答案
-        console.log("------------");
-        return;
-    }
-    if (className("ListView").exists()) {
-        var question = className("ListView").findOnce().parent().child(0).text();
-        console.log((conNum + 1).toString() + ".题目：" + question);
-    }
-    else {
-        console.error("提取题目失败!");
-        let listArray = className("ListView").findOnce().children();//题目选项列表
-        let i = random(0, listArray.length - 1);
-        console.log("随机点击一个");
-        listArray[i].child(0).click();//随意点击一个答案
-        return;
-    }
-
-    var chutiIndex = question.lastIndexOf("出题单位");
-    if (chutiIndex != -1) {
-        question = question.substring(0, chutiIndex - 2);
-    }
-
-    question = question.replace(/\s/g, "");
-
-    var options = [];//选项列表
-    if (className("ListView").exists()) {
-        className("ListView").findOne().children().forEach(child => {
-            var answer_q = child.child(0).child(1).text();
-            options.push(answer_q);
-        });
-    } else {
-        console.error("答案获取失败!");
-        return;
-    }
-
-    var answer = getAnswer(question, 'tiku');
-    if (answer.length == 0) {//tiku表中没有则到tikuNet表中搜索答案
-        answer = getAnswer(question, 'tikuNet');
-    }
-
-    console.info("答案：" + answer);
-
-    if (/^[a-zA-Z]{1}$/.test(answer)) {//如果为ABCD形式
-        var indexAnsTiku = indexFromChar(answer.toUpperCase());
-        answer = options[indexAnsTiku];
-        toastLog("answer from char=" + answer);
-    }
-
-    let hasClicked = false;
-    let listArray = className("ListView").findOnce().children();//题目选项列表
-    if (answer == "")//如果没找到答案
-    {
-        let i = random(0, listArray.length - 1);
-        console.error("没有找到答案，随机点击一个");
-        delay(randomNum(0.5, 1));
-        listArray[i].child(0).click();//随意点击一个答案
-        hasClicked = true;
-        console.log("------------");
-    }
-    else//如果找到了答案
-    {
-        var clickAns = "";
-        listArray.forEach(item => {
-            var listDescStr = item.child(0).child(1).text();
-            if (listDescStr == answer) {
-                clickAns = answer;
-                //显示 对号
-                var b = item.child(0).bounds();
-                var tipsWindow = drawfloaty(b.left, b.top);
-                //随机时长点击
-                delay(randomNum(0.5, 1.5));
-                //点击
-                item.child(0).click();
-                hasClicked = true;
-                sleep(300);
-                //消失 对号
-                tipsWindow.close();
-            }
-        });
-    }
-    if (!hasClicked)//如果没有点击成功
-    {
-        console.error("未能成功点击，随机点击一个");
-        delay(randomNum(0.5, 1));
-        let i = random(0, listArray.length - 1);
-        listArray[i].child(0).click();//随意点击一个答案
-        console.log("------------");
-    }
-}
-
+//显示对号悬浮窗
 function drawfloaty(x, y) {
     //floaty.closeAll();
-    var window = floaty.window(
+    let window = floaty.window(
         <frame gravity="center">
             <text id="text" text="✔" textColor="red" />
         </frame>
@@ -168,67 +14,266 @@ function drawfloaty(x, y) {
     return window;
 }
 
-
-/**
- * @description: 挑战答题
- * @param: null
- * @return: null
- */
-function challengeQuestion() {
-    let conNum = 0;//连续答对的次数
-    let lNum = 0;//轮数
-    while (true) {
-        delay(2);
-        if (!className("RadioButton").exists()) {
-            toastLog("没有找到题目！请检查是否进入答题界面！");
-            console.error("没有找到题目！请检查是否进入答题界面！");
-            console.log("停止");
-            break;
+function getTimu() {
+    let _timu = "";
+    //提取题目
+    if (className("android.widget.ListView").exists()) {
+        _timu = className("android.widget.ListView").findOnce().parent().child(0).text();
+        let chutiIndex = _timu.lastIndexOf("出题单位");
+        if (chutiIndex != -1) {
+            _timu = _timu.substring(0, chutiIndex - 2);
         }
-        challengeQuestionLoop(conNum);
-        delay(1);
-        if (text("v5IOXn6lQWYTJeqX2eHuNcrPesmSud2JdogYyGnRNxujMT8RS7y43zxY4coWepspQkvw" +
-            "RDTJtCTsZ5JW+8sGvTRDzFnDeO+BcOEpP0Rte6f+HwcGxeN2dglWfgH8P0C7HkCMJOAAAAAElFTkSuQmCC").exists())//遇到❌号，则答错了,不再通过结束本局字样判断
-        {
-            if (conNum >= qCount) {
-                lNum++;
+        if (textStartsWith("距离答题结束").exists()) {
+            _timu = _timu.substring(2);
+        }
+        //let timuOld = _timu;
+        _timu = _timu.replace(/\s/g, "");
+    }
+    return _timu;
+}
+
+function doChallengeAnswer() {
+    let goFlag = false; //判断是否为争上游 true-争上游 false-普通挑战
+    if (textStartsWith("距离答题结束").exists()) {
+        goFlag = true;
+    }
+    let _timu = null;
+    let answerPointArray = [];
+    //获取timu
+    _timu = getTimu();
+    if (_timu == "") {
+        log("题目获取失败");
+        //false标志
+        return false;
+    }
+
+    //提取答案列表选项
+    let ansTimu = [];
+    if (className("android.widget.ListView").exists()) {
+        className("android.widget.ListView").findOne().children().forEach(child => {
+            let answer_q = child.child(0).child(1).text();
+            if (goFlag) {
+                answer_q = answer_q.substring(3);
             }
-            if (lNum >= lCount) {
-                console.log("挑战答题结束！返回积分界面！");
-                back();
-                delay(1);
-                back();
+            ansTimu.push(answer_q);
+            //log("坐标点: "+child.child(0).bounds().top);
+            answerPointArray.push(child.child(0).bounds().top);
+        });
+        // log(ansTimu);
+    } else {
+        log("答案获取失败");
+        //false标志
+        return false;
+    }
+
+    let ansSearchArray = []; //tiku表答案数组
+    let answerArray = []; //答案临时数组
+    let hasRandom = false;
+    //获得答案数组
+    if (_timu != "选择词语的正确词形。") {
+        ansSearchArray = tikuCommon.searchTiku(_timu);
+    } else {
+        for (let h = 0; h < ansTimu.length; h++) {
+            let queryStr = "SELECT question,answer FROM tiku WHERE question = '选择词语的正确词形。' AND answer ='" + ansTimu[h] + "'";
+            ansSearchArray = tikuCommon.searchDb("", "", queryStr);
+            if (ansSearchArray.length != 0) {
                 break;
             }
-            else {
-                console.log("出现错误，等5秒开始下一轮...")
-                delay(3);//等待5秒才能开始下一轮
-                back();
-                //desc("结束本局").click();//有可能找不到结束本局字样所在页面控件，所以直接返回到上一层
-                delay(2);
-                text("再来一局").click()
-                delay(4);
-                if (conNum < 5) {
-                    conNum = 0;
+        }
+    }
+
+    if (ansSearchArray.length == 0) { //tiku表中没有，搜索网络表
+        ansSearchArray = tikuCommon.searchNet(_timu);
+    } else { //tiku表中有
+        answerArray = ansSearchArray;
+    }
+
+    if (ansSearchArray.length == 0) { //网络中也没有，随机
+        let randomIndex = random(0, ansTimu.length - 1);
+        answerArray.push({
+            "question": _timu,
+            "answer": ansTimu[randomIndex]
+        });
+        hasRandom = true;
+    } else { //tikuNet表中有
+        answerArray = ansSearchArray;
+    }
+
+    let answer = "";
+    //对答案数组逐项点击
+    let hasClicked = false;
+    let clickAns = "";
+    let ansByColor = "";
+    // let tipsWindow = null;
+
+    if (answerArray.length > 1) {
+        toastLog("答案个数 :" + answerArray.length);
+    }
+    for (let i = 0, lenAnsArr = answerArray.length; i < lenAnsArr; i++) {
+        if (hasClicked == false) { //防止多次点击
+            answer = answerArray[i].answer.replace(/(^\s*)|(\s*$)/g, ""); //去除前后空格，解决历史遗留问题
+            if (/^[a-zA-Z]{1}$/.test(answer)) { //如果为ABCD形式
+                let indexAns = tikuCommon.indexFromChar(answer.toUpperCase());
+                answer = ansTimu[indexAns];
+            }
+            // log("answer :" + answer);
+            let listArray = className("ListView").findOnce().children();
+            // let clickAns = "";
+            //for(ans of answer){//答案数组逐个匹配
+            for (let j = 0; j < listArray.length; j++) {
+                let item = listArray[j];
+                let listStr = item.child(0).child(1).text();
+                if (goFlag) {
+                    listStr = listStr.substring(3);
+                }
+                // log("listStr " + j + ": " + listStr);
+                if (listStr == answer) {
+                    clickAns = answer;
+                    log("clickAns= " + clickAns);
+                    // 显示 对号
+                    let b = item.child(0).bounds();
+                    tipsWindow = drawfloaty(b.left, b.top);
+                    sleep(100);
+                    //延时点击
+                    // sleep(delayedTime * 1000);
+                    //点击
+                    item.child(0).click();
+                    hasClicked = true;
+                    break;
+                }
+            }
+            if (hasClicked == false) {
+                continue;
+            }
+        }
+    }
+    //匹配完毕 还未找到答案，需随机点击
+    if (hasClicked == false) { //没有点击成功
+        // toastLog("请手动点击 " + answer);
+        // return false;
+        //随机点击
+        log("匹配完毕，未发现答案。开始随机点击！");
+        let listArray = className("ListView").findOnce().children();
+        let randomIndex = random(0, listArray.length - 1);
+        let item = listArray[randomIndex];
+        let listStr = item.child(0).child(1).text();
+        if (goFlag) {
+            listStr = listStr.substring(3);
+        }
+        //答案赋值
+        clickAns = listStr;
+        log("clickAns= " + clickAns);
+        // 显示 对号
+        let b = item.child(0).bounds();
+        tipsWindow = drawfloaty(b.left, b.top);
+        sleep(100);
+        //点击
+        item.child(0).click();
+        hasRandom = true;
+        hasClicked = true;
+    }
+
+    //截图
+    sleep(1300);
+    //图像检索正确答案
+    threads.start(function () {
+        let img = captureScreen();
+        for (let k = 0; k < answerPointArray.length; k++) {
+            // log("答案"+(i+1)+"处的颜色: "+colors.toString(images.pixel(img,200,answerPointArray[i]+10)));
+            // if (images.detectsColor(img, "#f3f3f8", 200, answerPointArray[i]+10)) {
+            if (images.detectsColor(img, "#3dc074", 200, answerPointArray[k] + 10)) {
+                toastLog("正确答案 " + ansTimu[k]);
+                ansByColor = ansTimu[k];
+                break;
+            }
+        };
+        img.saveTo("/sdcard/脚本/images.png");
+    });
+
+    //关闭悬浮窗
+    if (tipsWindow) {
+        tipsWindow.close();
+    }
+    //切题
+    sleep(1000);
+    //写库
+    if (_timu != getTimu()) { //题目变了，代表答对了
+        //只要随机了 都插库
+        if (hasRandom && clickAns != "") {
+            let sqlstr = "INSERT INTO tiku VALUES ('" + _timu + "','" + clickAns + "','')";
+            tikuCommon.executeSQL(sqlstr);
+        }
+    } else { //题干未变化，代表答错了        
+        if (ansByColor != "") { //捕获到正确答案
+            if (ansSearchArray.length > 0) { //题库中有，但答案是错的
+                if (clickAns != "") {
+                    let sqlstr = "UPDATE tiku SET answer='" + ansByColor + "' WHERE question='" + _timu + "' AND answer ='" + clickAns + "'";
+                    tikuCommon.executeSQL(sqlstr);
+                }
+            } else { //题库中没有
+                let sqlstr = "INSERT INTO tiku VALUES ('" + _timu + "','" + ansByColor + "','')";
+                tikuCommon.executeSQL(sqlstr);
+            }
+        } else { //未捕获到正确答案
+            if (hasRandom) { //随机了，说明随机的答案不对
+                //答案全入库
+                if (ansTimu.length == 2) {
+                    for (let iAnsTimu = 0; iAnsTimu < 2; iAnsTimu++) {
+                        if (ansTimu[iAnsTimu] != clickAns) {
+                            let sqlstr = "INSERT INTO tiku VALUES ('" + _timu + "','" + ansTimu[iAnsTimu] + "','')";
+                            tikuCommon.executeSQL(sqlstr);
+                        }
+                    }
+                }
+            } else { //没随机，说明答案不正确 
+                let ansTimu0 = className("android.widget.ListView").findOne().child(0).child(0).child(1).text();
+                if (ansTimu[0] == ansTimu0 && !goFlag) {//答案一样 且 是普通挑战                      
+                    let sqlstr = "DELETE FROM tiku WHERE question='" + _timu + "' AND answer ='" + clickAns + "'";
+                    tikuCommon.executeSQL(sqlstr);
                 }
             }
         }
-        else//答对了
-        {
-            conNum++;
-        }
+        //答错了，false标志
+        return false;
     }
-    conNum = 0;
+    return true;
 }
 
-function main() {
-    console.setPosition(0, device.height / 2);//部分华为手机console有bug请注释本行
-    console.show();
-    delay(1);
-    challengeQuestion();
-    console.hide()
+function main(isLoop) {
+    do {
+        try {
+            if (text("开始比赛").exists()) {
+                click("开始比赛");
+                sleep(4000);
+            }
+            if (text("再来一局").exists()) {
+                click("再来一局");
+                sleep(4000);
+            }
+            if (text("继续挑战").exists()) {
+                click("继续挑战");
+                sleep(1000);
+                click("开始比赛");
+                sleep(3000);
+                while (!textStartsWith("距离答题结束").exists());
+            }
+            if (text("分享就能复活").exists()) {
+                click("分享就能复活");
+                sleep(1000);
+                back();
+                sleep(4000);
+            }
+            if (doChallengeAnswer() == false) {
+                sleep(500);
+            }
+        } catch (e) {
+            //关闭悬浮窗
+            if (tipsWindow) {
+                tipsWindow.close();
+            }
+        }
+    } while (isLoop);
+    // toastLog("停止答题！");
 }
-
+// main();
 module.exports = main;
-
-
